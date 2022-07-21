@@ -1,0 +1,84 @@
+package uk.gov.nationalarchives.rotate
+
+import com.typesafe.config.{Config, ConfigFactory}
+import org.keycloak.admin.client.Keycloak
+import org.keycloak.admin.client.resource.RealmResource
+import org.slf4j.Logger
+import org.slf4j.impl.SimpleLoggerFactory
+import software.amazon.awssdk.regions.Region
+import software.amazon.awssdk.services.ecs.EcsClient
+import software.amazon.awssdk.services.ecs.model.{UpdateServiceRequest, UpdateServiceResponse}
+import software.amazon.awssdk.services.ssm.SsmClient
+import software.amazon.awssdk.services.ssm.model.{ParameterType, PutParameterRequest}
+import uk.gov.nationalarchives.rotate.MessageSender.RotationResult
+
+import scala.util.{Failure, Success, Try}
+
+class RotateClientSecrets(keycloakClient: Keycloak,
+                          ssmClient: SsmClient,
+                          ecsClient: EcsClient,
+                          stage: String,
+                          clients: Map[String, String]) {
+
+  val logger: Logger = new SimpleLoggerFactory().getLogger(this.getClass.getName)
+
+  private def restartFrontEndService(): UpdateServiceResponse = {
+    val updateServiceRequest = UpdateServiceRequest.builder
+      .service(s"frontend_service_$stage")
+      .cluster(s"frontend_$stage")
+      .forceNewDeployment(true)
+      .build()
+    ecsClient.updateService(updateServiceRequest)
+  }
+
+  def rotate(): List[RotationResult] = {
+    val putParameterBuilder = PutParameterRequest.builder
+      .overwrite(true)
+      .`type`(ParameterType.SECURE_STRING)
+
+    clients.map {
+      case (tdrClient, ssmParameterName) =>
+        Try {
+          val clients = keycloakClient.realm("tdr").clients()
+          val clientId = clients.findByClientId(tdrClient).get(0).getId
+          val client = clients.get(clientId)
+          val newSecret = client.generateNewSecret().getValue
+          logger.info(s"Secrets generated for $tdrClient")
+          val putParameterRequest = putParameterBuilder
+            .name(ssmParameterName)
+            .value(newSecret).build()
+          ssmClient.putParameter(putParameterRequest)
+          logger.info(s"Parameter name $ssmParameterName updated for $tdrClient")
+          restartFrontEndService()
+          RotationResult(success = true)
+        } match {
+          case Failure(exception) =>
+            logger.error("Error updating client secret", exception)
+            RotationResult(success = false, Option(exception.getMessage))
+          case Success(result) => result
+        }
+    }.toList
+  }
+}
+object RotateClientSecrets {
+  val ssmClient: SsmClient = SsmClient.builder()
+    .region(Region.EU_WEST_2)
+    .build()
+
+  val ecsClient: EcsClient = EcsClient.builder()
+    .region(Region.EU_WEST_2)
+    .build()
+
+  val config: Config = ConfigFactory.load()
+  val stage: String = config.getString("environment")
+  val clients: Map[String, String] = Map(
+    "tdr"-> s"/$stage/keycloak/client/secret",
+    "tdr-backend-checks"-> s"/$stage/keycloak/backend_checks_client/secret",
+    "tdr-realm-admin"-> s"/$stage/keycloak/realm_admin_client/secret",
+    "tdr-reporting"-> s"/$stage/keycloak/reporting_client/secret",
+    "tdr-rotate-secrets"-> s"/$stage/keycloak/rotate_secrets_client/secret",
+    "tdr-user-admin"-> s"/$stage/keycloak/user_admin_client/secret",
+    "tdr-rotate-secrets" -> s"/$stage/keycloak/rotate_secrets_client/secret",
+  )
+  def apply(client: Keycloak) = new RotateClientSecrets(client, ssmClient, ecsClient, stage, clients)
+}
