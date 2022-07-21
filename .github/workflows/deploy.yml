@@ -1,6 +1,5 @@
 name: TDR Deploy Keycloak Secret Rotation Lambda
 on:
-  push:
   workflow_dispatch:
     inputs:
       environment:
