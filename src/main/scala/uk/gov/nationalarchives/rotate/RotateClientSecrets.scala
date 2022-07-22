@@ -1,6 +1,5 @@
 package uk.gov.nationalarchives.rotate
 
-import com.typesafe.config.{Config, ConfigFactory}
 import org.keycloak.admin.client.Keycloak
 import org.slf4j.Logger
 import org.slf4j.impl.SimpleLoggerFactory
@@ -10,6 +9,7 @@ import software.amazon.awssdk.services.ecs.model.{UpdateServiceRequest, UpdateSe
 import software.amazon.awssdk.services.ssm.SsmClient
 import software.amazon.awssdk.services.ssm.model.{ParameterType, PutParameterRequest}
 import uk.gov.nationalarchives.rotate.MessageSender.RotationResult
+import uk.gov.nationalarchives.rotate.ApplicationConfig._
 
 import scala.util.{Failure, Success, Try}
 
@@ -68,16 +68,14 @@ object RotateClientSecrets {
     .region(Region.EU_WEST_2)
     .build()
 
-  val config: Config = ConfigFactory.load()
-  val stage: String = config.getString("environment")
   val clients: Map[String, String] = Map(
-    "tdr"-> s"/$stage/keycloak/client/secret",
-    "tdr-backend-checks"-> s"/$stage/keycloak/backend_checks_client/secret",
-    "tdr-realm-admin"-> s"/$stage/keycloak/realm_admin_client/secret",
-    "tdr-reporting"-> s"/$stage/keycloak/reporting_client/secret",
-    "tdr-rotate-secrets"-> s"/$stage/keycloak/rotate_secrets_client/secret",
-    "tdr-user-admin"-> s"/$stage/keycloak/user_admin_client/secret",
-    "tdr-rotate-secrets" -> s"/$stage/keycloak/rotate_secrets_client/secret",
+    "tdr"-> s"/$environment/keycloak/client/secret",
+    "tdr-backend-checks"-> s"/$environment/keycloak/backend_checks_client/secret",
+    "tdr-realm-admin"-> s"/$environment/keycloak/realm_admin_client/secret",
+    "tdr-reporting"-> s"/$environment/keycloak/reporting_client/secret",
+    "tdr-rotate-secrets"-> s"/$environment/keycloak/rotate_secrets_client/secret",
+    "tdr-user-admin"-> s"/$environment/keycloak/user_admin_client/secret",
+    "tdr-rotate-secrets" -> s"/$environment/keycloak/rotate_secrets_client/secret",
   )
-  def apply(client: Keycloak) = new RotateClientSecrets(client, ssmClient, ecsClient, stage, clients)
+  def apply(client: Keycloak) = new RotateClientSecrets(client, ssmClient, ecsClient, environment, clients)
 }

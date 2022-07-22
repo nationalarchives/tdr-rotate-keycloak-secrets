@@ -8,7 +8,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import software.amazon.awssdk.services.sns.SnsClient
 import software.amazon.awssdk.services.sns.model.{PublishRequest, PublishResponse}
-import uk.gov.nationalarchives.rotate.MessageSender.RotationResult
+import uk.gov.nationalarchives.rotate.MessageSender.{RotationNotification, RotationResult}
 
 
 class MessageSenderSpec extends AnyFlatSpec with Matchers with MockitoSugar {
@@ -41,6 +41,6 @@ class MessageSenderSpec extends AnyFlatSpec with Matchers with MockitoSugar {
     val message = argumentCaptor.getValue.message()
 
     verify(snsMock).publish(argumentCaptor.capture())
-    message should equal(rotationResults.asJson.noSpaces)
+    message should equal(RotationNotification(rotationResults).asJson.noSpaces)
   }
 }

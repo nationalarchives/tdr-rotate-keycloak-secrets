@@ -15,6 +15,7 @@ import software.amazon.awssdk.services.ecs.EcsClient
 import software.amazon.awssdk.services.ecs.model.{UpdateServiceRequest, UpdateServiceResponse}
 import software.amazon.awssdk.services.ssm.SsmClient
 import software.amazon.awssdk.services.ssm.model.{PutParameterRequest, PutParameterResponse}
+import uk.gov.nationalarchives.rotate.RotateClientSecrets.clients
 
 import java.util.UUID
 
@@ -170,5 +171,16 @@ class RotateClientSecretsSpec extends AnyFlatSpec with Matchers with MockitoSuga
     results.size should be(1)
     results.head.success should be(false)
     results.head.rotationResultErrorMessage.get should equal(errorMessage)
+  }
+
+  "The clients" should "be correct" in {
+    val environment = "test"
+    clients("tdr") should equal(s"/$environment/keycloak/client/secret")
+    clients("tdr-backend-checks") should equal(s"/$environment/keycloak/backend_checks_client/secret")
+    clients("tdr-realm-admin") should equal(s"/$environment/keycloak/realm_admin_client/secret")
+    clients("tdr-reporting") should equal (s"/$environment/keycloak/reporting_client/secret")
+    clients("tdr-rotate-secrets") should equal (s"/$environment/keycloak/rotate_secrets_client/secret")
+    clients("tdr-user-admin") should be(s"/$environment/keycloak/user_admin_client/secret")
+    clients("tdr-rotate-secrets") should be (s"/$environment/keycloak/rotate_secrets_client/secret")
   }
 }
