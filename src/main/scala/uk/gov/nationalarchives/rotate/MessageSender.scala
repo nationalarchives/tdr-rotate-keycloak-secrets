@@ -21,7 +21,7 @@ class MessageSender(snsClient: SnsClient, topicArn: String) {
 }
 object MessageSender {
   case class RotationNotification(results: List[RotationResult])
-  case class RotationResult(success: Boolean, rotationResultErrorMessage: Option[String] = None)
+  case class RotationResult(clientId: String, success: Boolean, rotationResultErrorMessage: Option[String] = None)
 
   val config: Config = ConfigFactory.load
   val snsClient: SnsClient = SnsClient.builder()

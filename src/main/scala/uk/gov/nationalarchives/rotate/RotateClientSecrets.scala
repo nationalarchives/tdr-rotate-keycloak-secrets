@@ -2,7 +2,6 @@ package uk.gov.nationalarchives.rotate
 
 import com.typesafe.config.{Config, ConfigFactory}
 import org.keycloak.admin.client.Keycloak
-import org.keycloak.admin.client.resource.RealmResource
 import org.slf4j.Logger
 import org.slf4j.impl.SimpleLoggerFactory
 import software.amazon.awssdk.regions.Region
@@ -50,11 +49,11 @@ class RotateClientSecrets(keycloakClient: Keycloak,
           ssmClient.putParameter(putParameterRequest)
           logger.info(s"Parameter name $ssmParameterName updated for $tdrClient")
           restartFrontEndService()
-          RotationResult(success = true)
+          RotationResult(tdrClient, success = true)
         } match {
           case Failure(exception) =>
             logger.error("Error updating client secret", exception)
-            RotationResult(success = false, Option(exception.getMessage))
+            RotationResult(tdrClient, success = false, Option(exception.getMessage))
           case Success(result) => result
         }
     }.toList

@@ -19,7 +19,7 @@ class MessageSenderSpec extends AnyFlatSpec with Matchers with MockitoSugar {
     val argumentCaptor: ArgumentCaptor[PublishRequest] = ArgumentCaptor.forClass(classOf[PublishRequest])
     doAnswer(PublishResponse.builder.build).when(snsMock).publish(argumentCaptor.capture())
 
-    val rotationResults = List(RotationResult(success = true))
+    val rotationResults = List(RotationResult("clientId", success = true))
     new MessageSender(snsMock, topicArn).sendMessages(rotationResults)
 
     val resultTopic = argumentCaptor.getValue.topicArn()
@@ -35,7 +35,7 @@ class MessageSenderSpec extends AnyFlatSpec with Matchers with MockitoSugar {
     val argumentCaptor: ArgumentCaptor[PublishRequest] = ArgumentCaptor.forClass(classOf[PublishRequest])
     doAnswer(PublishResponse.builder.build).when(snsMock).publish(argumentCaptor.capture())
 
-    val rotationResults = List(RotationResult(success = true), RotationResult(success = false, Option("An error message")))
+    val rotationResults = List(RotationResult("clientId", success = true), RotationResult("failedClient", success = false, Option("An error message")))
     new MessageSender(snsMock, topicArn).sendMessages(rotationResults)
 
     val message = argumentCaptor.getValue.message()
