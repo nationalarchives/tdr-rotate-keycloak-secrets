@@ -13,6 +13,7 @@ lazy val root = (project in file("."))
       awsSsm,
       circeCore,
       circeGeneric,
+      circeParser % Test,
       keycloakAdminClient,
       lambdaCore,
       mockito % Test,

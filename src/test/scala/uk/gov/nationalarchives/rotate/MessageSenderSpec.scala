@@ -8,7 +8,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import software.amazon.awssdk.services.sns.SnsClient
 import software.amazon.awssdk.services.sns.model.{PublishRequest, PublishResponse}
-import uk.gov.nationalarchives.rotate.MessageSender.{RotationNotification, RotationResult}
+import uk.gov.nationalarchives.rotate.MessageSender.{Message, Messages}
 
 
 class MessageSenderSpec extends AnyFlatSpec with Matchers with MockitoSugar {
@@ -19,8 +19,8 @@ class MessageSenderSpec extends AnyFlatSpec with Matchers with MockitoSugar {
     val argumentCaptor: ArgumentCaptor[PublishRequest] = ArgumentCaptor.forClass(classOf[PublishRequest])
     doAnswer(PublishResponse.builder.build).when(snsMock).publish(argumentCaptor.capture())
 
-    val rotationResults = List(RotationResult("clientId", success = true))
-    new MessageSender(snsMock, topicArn).sendMessages(rotationResults)
+    val messages = List(Message("A test message"))
+    new MessageSender(snsMock, topicArn).sendMessages(messages)
 
     val resultTopic = argumentCaptor.getValue.topicArn()
     resultTopic should equal(topicArn)
@@ -35,12 +35,12 @@ class MessageSenderSpec extends AnyFlatSpec with Matchers with MockitoSugar {
     val argumentCaptor: ArgumentCaptor[PublishRequest] = ArgumentCaptor.forClass(classOf[PublishRequest])
     doAnswer(PublishResponse.builder.build).when(snsMock).publish(argumentCaptor.capture())
 
-    val rotationResults = List(RotationResult("clientId", success = true), RotationResult("failedClient", success = false, Option("An error message")))
-    new MessageSender(snsMock, topicArn).sendMessages(rotationResults)
+    val messages = List(Message("Message one"), Message("Message two"))
+    new MessageSender(snsMock, topicArn).sendMessages(messages)
 
     val message = argumentCaptor.getValue.message()
 
     verify(snsMock).publish(argumentCaptor.capture())
-    message should equal(RotationNotification(rotationResults).asJson.noSpaces)
+    message should equal(Messages(messages).asJson.noSpaces)
   }
 }

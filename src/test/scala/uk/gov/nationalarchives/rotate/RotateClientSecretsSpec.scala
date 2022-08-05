@@ -7,7 +7,7 @@ import com.github.tomakehurst.wiremock.matching.UrlPattern
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import org.keycloak.admin.client.{Keycloak, KeycloakBuilder}
 import org.mockito.ArgumentMatchers.any
-import org.mockito.{ArgumentCaptor, MockitoSugar}
+import org.mockito.{ArgumentCaptor, Mockito, MockitoSugar}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
@@ -67,7 +67,7 @@ class RotateClientSecretsSpec extends AnyFlatSpec with Matchers with MockitoSuga
   "The rotate function" should "call the correct services" in {
     val ssmClients: Map[String, String] = Map("a" -> "b")
     stubAuthServer(List(AuthServerClients("a", stubClientSecretPost = true)))
-    val mockSsm = mock[SsmClient]
+    val mockSsm = Mockito.mock(classOf[SsmClient])
     val putParameterResponse = PutParameterResponse.builder.build()
     when(mockSsm.putParameter(any[PutParameterRequest])).thenReturn(putParameterResponse)
 
@@ -79,7 +79,7 @@ class RotateClientSecretsSpec extends AnyFlatSpec with Matchers with MockitoSuga
     val rotateClientSecrets = new RotateClientSecrets(client, mockSsm, mockEcsClient, stage, ssmClients)
     val results = rotateClientSecrets.rotate()
     results.size should be(1)
-    results.head.success should be(true)
+    results.head.message should be("Client a has been rotated successfully")
   }
 
   "The rotate function" should "use the correct secret path" in {
@@ -87,7 +87,7 @@ class RotateClientSecretsSpec extends AnyFlatSpec with Matchers with MockitoSuga
     val ssmClients: Map[String, String] = Map("a" -> parameterPath)
     stubAuthServer(List(AuthServerClients("a", stubClientSecretPost = true)))
 
-    val mockSsm = mock[SsmClient]
+    val mockSsm = Mockito.mock(classOf[SsmClient])
     val putParameterResponse = PutParameterResponse.builder.build()
     val putParameterArgumentCaptor: ArgumentCaptor[PutParameterRequest] = ArgumentCaptor.forClass(classOf[PutParameterRequest])
     when(mockSsm.putParameter(putParameterArgumentCaptor.capture())).thenReturn(putParameterResponse)
@@ -100,7 +100,7 @@ class RotateClientSecretsSpec extends AnyFlatSpec with Matchers with MockitoSuga
     val rotateClientSecrets = new RotateClientSecrets(client, mockSsm, mockEcsClient, stage, ssmClients)
     val results = rotateClientSecrets.rotate()
     results.size should be(1)
-    results.head.success should be(true)
+    results.head.message should be("Client a has been rotated successfully")
     putParameterArgumentCaptor.getValue.name() should equal(parameterPath)
   }
 
@@ -111,7 +111,7 @@ class RotateClientSecretsSpec extends AnyFlatSpec with Matchers with MockitoSuga
       AuthServerClients("b", stubClientSecretPost = false)
     )
     stubAuthServer(authServerClients)
-    val mockSsm = mock[SsmClient]
+    val mockSsm = Mockito.mock(classOf[SsmClient])
     val putParameterResponse = PutParameterResponse.builder.build()
     when(mockSsm.putParameter(any[PutParameterRequest])).thenReturn(putParameterResponse)
 
@@ -119,10 +119,8 @@ class RotateClientSecretsSpec extends AnyFlatSpec with Matchers with MockitoSuga
     val results = rotateClientSecrets.rotate()
 
     results.size should be(2)
-    results.exists(_.success) should be(true)
-    results.exists(!_.success) should be(true)
-    val resultErrorMessage = results.find(!_.success).get.rotationResultErrorMessage.get
-    resultErrorMessage should equal("HTTP 404 Not Found")
+    results.exists(_.message == "Client a has been rotated successfully") should be(true)
+    results.exists(_.message == "Client b has failed HTTP 404 Not Found") should be(true)
   }
 
   "The rotate function" should "return an error if the Keycloak secret update fails" in {
@@ -130,19 +128,18 @@ class RotateClientSecretsSpec extends AnyFlatSpec with Matchers with MockitoSuga
     val authServerClients = List(AuthServerClients("a", stubClientSecretPost = false))
     stubAuthServer(authServerClients)
 
-    val rotateClientSecrets = new RotateClientSecrets(client, mock[SsmClient], mock[EcsClient], stage, ssmClients)
+    val rotateClientSecrets = new RotateClientSecrets(client, Mockito.mock(classOf[SsmClient]), mock[EcsClient], stage, ssmClients)
     val results = rotateClientSecrets.rotate()
 
     results.size should be(1)
 
-    val resultErrorMessage = results.find(!_.success).get.rotationResultErrorMessage.get
-    resultErrorMessage should equal("HTTP 404 Not Found")
+    results.exists(_.message == "Client a has failed HTTP 404 Not Found") should be(true)
   }
 
   "The rotate function" should "return an error if the systems manager update fails" in {
     val ssmClients: Map[String, String] = Map("a" -> "b")
     stubAuthServer(List(AuthServerClients("a", stubClientSecretPost = true)))
-    val mockSsm = mock[SsmClient]
+    val mockSsm = Mockito.mock(classOf[SsmClient])
     val errorMessage = "Error putting parameter"
     when(mockSsm.putParameter(any[PutParameterRequest])).thenThrow(new Exception(errorMessage))
 
@@ -150,14 +147,13 @@ class RotateClientSecretsSpec extends AnyFlatSpec with Matchers with MockitoSuga
     val results = rotateClientSecrets.rotate()
 
     results.size should be(1)
-    results.head.success should be(false)
-    results.head.rotationResultErrorMessage.get should equal(errorMessage)
+    results.exists(_.message == s"Client a has failed $errorMessage") should be(true)
   }
 
   "The rotate function" should "return an error if the ECS service update fails" in {
     val ssmClients: Map[String, String] = Map("a" -> "b")
     stubAuthServer(List(AuthServerClients("a", stubClientSecretPost = true)))
-    val mockSsm = mock[SsmClient]
+    val mockSsm = Mockito.mock(classOf[SsmClient])
     val putParameterResponse = PutParameterResponse.builder.build()
     when(mockSsm.putParameter(any[PutParameterRequest])).thenReturn(putParameterResponse)
 
@@ -169,8 +165,7 @@ class RotateClientSecretsSpec extends AnyFlatSpec with Matchers with MockitoSuga
     val rotateClientSecrets = new RotateClientSecrets(client, mockSsm, mockEcsClient, stage, ssmClients)
     val results = rotateClientSecrets.rotate()
     results.size should be(1)
-    results.head.success should be(false)
-    results.head.rotationResultErrorMessage.get should equal(errorMessage)
+    results.exists(_.message == s"Client a has failed $errorMessage") should be(true)
   }
 
   "The clients" should "be correct" in {
