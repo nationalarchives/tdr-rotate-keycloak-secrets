@@ -10,7 +10,7 @@ object Dependencies {
   lazy val circeGeneric = "io.circe" %% "circe-generic" % circeVersion
   lazy val keycloakAdminClient = "org.keycloak" % "keycloak-admin-client" % "18.0.0"
   lazy val lambdaCore = "com.amazonaws" % "aws-lambda-java-core" % "1.2.1"
-  lazy val mockito = "org.mockito" %% "mockito-scala" % "1.17.7"
+  lazy val mockito = "org.mockito" %% "mockito-scala" % "1.17.12"
   lazy val scalaTest = "org.scalatest" %% "scalatest" % "3.2.13"
   lazy val slf4j = "org.slf4j" % "slf4j-simple" % "1.7.36"
   lazy val typesafe = "com.typesafe" % "config" % "1.4.2"
