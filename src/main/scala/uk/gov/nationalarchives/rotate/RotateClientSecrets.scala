@@ -8,8 +8,8 @@ import software.amazon.awssdk.services.ecs.EcsClient
 import software.amazon.awssdk.services.ecs.model.{UpdateServiceRequest, UpdateServiceResponse}
 import software.amazon.awssdk.services.ssm.SsmClient
 import software.amazon.awssdk.services.ssm.model.{ParameterType, PutParameterRequest}
-import uk.gov.nationalarchives.rotate.MessageSender.RotationResult
 import uk.gov.nationalarchives.rotate.ApplicationConfig._
+import uk.gov.nationalarchives.rotate.MessageSender.Message
 
 import scala.util.{Failure, Success, Try}
 
@@ -30,7 +30,7 @@ class RotateClientSecrets(keycloakClient: Keycloak,
     ecsClient.updateService(updateServiceRequest)
   }
 
-  def rotate(): List[RotationResult] = {
+  def rotate(): List[Message] = {
     val putParameterBuilder = PutParameterRequest.builder
       .overwrite(true)
       .`type`(ParameterType.SECURE_STRING)
@@ -49,11 +49,11 @@ class RotateClientSecrets(keycloakClient: Keycloak,
           ssmClient.putParameter(putParameterRequest)
           logger.info(s"Parameter name $ssmParameterName updated for $tdrClient")
           restartFrontEndService()
-          RotationResult(tdrClient, success = true)
+          Message(s"Client $tdrClient has been rotated successfully")
         } match {
           case Failure(exception) =>
             logger.error("Error updating client secret", exception)
-            RotationResult(tdrClient, success = false, Option(exception.getMessage))
+            Message(s"Client $tdrClient has failed ${exception.getMessage}")
           case Success(result) => result
         }
     }.toList
