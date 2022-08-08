@@ -20,14 +20,13 @@ class RotateRealmKeys(client: Keycloak) {
     val keyProvider = "org.keycloak.keys.KeyProvider"
     val keyName = "rsa-generated"
 
-
     val rsaKeys = components.query("tdr", keyProvider, keyName)
 
     def filterKeys(filterValue: String): List[ComponentRepresentation] = rsaKeys.asScala.filter(key => key.getConfig.get("active").asScala.toList.head == filterValue).toList
 
     val inactiveKeys: List[ComponentRepresentation] = filterKeys("false")
     val activeKeys: List[ComponentRepresentation] = filterKeys("true")
-    //Delete the passive keys from last week, no-one should be using them.
+    //Delete the previous passive keys, no-one should be using them
     inactiveKeys.foreach(key => {
       components.component(key.getId).remove()
     })

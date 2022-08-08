@@ -74,8 +74,7 @@ class RotateRealmKeysSpec  extends AnyFlatSpec with Matchers with MockitoSugar w
       .map(_.getRequest)
       .get
 
-
-  "The rotate method" should "should invalidate the active key" in {
+  "The rotate method" should "invalidate the active key" in {
     stubRequests()
     new RotateRealmKeys(client).rotate()
     val component: Component = decode[Component](loggedRequest(PUT).getBodyAsString).right.value
