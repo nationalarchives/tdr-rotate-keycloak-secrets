@@ -8,7 +8,7 @@ object Dependencies {
   lazy val awsEcs = "software.amazon.awssdk" % "ecs" % "2.17.233"
   lazy val circeCore = "io.circe" %% "circe-core" % circeVersion
   lazy val circeGeneric = "io.circe" %% "circe-generic" % circeVersion
-  lazy val keycloakAdminClient = "org.keycloak" % "keycloak-admin-client" % "18.0.0"
+  lazy val keycloakAdminClient = "org.keycloak" % "keycloak-admin-client" % "18.0.2"
   lazy val lambdaCore = "com.amazonaws" % "aws-lambda-java-core" % "1.2.1"
   lazy val mockito = "org.mockito" %% "mockito-scala" % "1.17.12"
   lazy val scalaTest = "org.scalatest" %% "scalatest" % "3.2.13"
