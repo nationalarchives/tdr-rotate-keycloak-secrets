@@ -2,7 +2,7 @@ package uk.gov.nationalarchives.rotate
 
 import org.keycloak.admin.client.Keycloak
 import org.slf4j.Logger
-import org.slf4j.impl.SimpleLoggerFactory
+import org.slf4j.simple.SimpleLoggerFactory
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.ecs.EcsClient
 import software.amazon.awssdk.services.ecs.model.{UpdateServiceRequest, UpdateServiceResponse}
