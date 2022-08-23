@@ -5,7 +5,7 @@ import org.keycloak.admin.client.resource.ComponentsResource
 import org.keycloak.common.util.MultivaluedHashMap
 import org.keycloak.representations.idm.ComponentRepresentation
 import org.slf4j.Logger
-import org.slf4j.impl.SimpleLoggerFactory
+import org.slf4j.simple.SimpleLoggerFactory
 import uk.gov.nationalarchives.rotate.MessageSender.Message
 
 import scala.jdk.CollectionConverters._
