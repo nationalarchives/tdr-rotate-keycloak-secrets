@@ -4,8 +4,8 @@ object Dependencies {
   private val circeVersion = "0.14.3"
 
   lazy val awsSns = "software.amazon.awssdk" % "sns" % "2.17.234"
-  lazy val awsSsm = "software.amazon.awssdk" % "ssm" % "2.17.233"
-  lazy val awsEcs = "software.amazon.awssdk" % "ecs" % "2.17.233"
+  lazy val awsSsm = "software.amazon.awssdk" % "ssm" % "2.18.1"
+  lazy val awsEcs = "software.amazon.awssdk" % "ecs" % "2.18.1"
   lazy val circeCore = "io.circe" %% "circe-core" % circeVersion
   lazy val circeGeneric = "io.circe" %% "circe-generic" % circeVersion
   lazy val circeParser = "io.circe" %% "circe-parser" % circeVersion
