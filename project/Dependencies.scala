@@ -13,7 +13,7 @@ object Dependencies {
   lazy val lambdaCore = "com.amazonaws" % "aws-lambda-java-core" % "1.2.3"
   lazy val mockito = "org.mockito" %% "mockito-scala" % "1.17.30"
   lazy val scalaTest = "org.scalatest" %% "scalatest" % "3.2.17"
-  lazy val slf4j = "org.slf4j" % "slf4j-simple" % "2.0.9"
+  lazy val slf4j = "org.slf4j" % "slf4j-simple" % "2.0.11"
   lazy val typesafe = "com.typesafe" % "config" % "1.4.3"
   lazy val wiremock = "com.github.tomakehurst" % "wiremock" % "3.0.1"
 }
