@@ -11,6 +11,7 @@ lazy val root = (project in file("."))
       awsEcs,
       awsSns,
       awsSsm,
+      awsSm,
       circeCore,
       circeGeneric,
       circeParser % Test,

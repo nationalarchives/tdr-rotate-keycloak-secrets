@@ -12,4 +12,5 @@ object ApplicationConfig {
   val ssmEndpoint: String = config.getString("ssm.endpoint")
   val snsEndpoint: String = config.getString("sns.endpoint")
   val snsTopic: String = config.getString("sns.topic")
+  val ayrClientSecretId: String = config.getString("secretsmanager.ayr_secret_id")
 }

@@ -6,6 +6,8 @@ import org.slf4j.simple.SimpleLoggerFactory
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.ecs.EcsClient
 import software.amazon.awssdk.services.ecs.model.{UpdateServiceRequest, UpdateServiceResponse}
+import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient
+import software.amazon.awssdk.services.secretsmanager.model.PutSecretValueRequest
 import software.amazon.awssdk.services.ssm.SsmClient
 import software.amazon.awssdk.services.ssm.model.{ParameterType, PutParameterRequest}
 import uk.gov.nationalarchives.rotate.ApplicationConfig._
@@ -16,6 +18,7 @@ import scala.util.{Failure, Success, Try}
 class RotateClientSecrets(keycloakClient: Keycloak,
                           ssmClient: SsmClient,
                           ecsClient: EcsClient,
+                          smClient: SecretsManagerClient,
                           stage: String,
                           clients: Map[String, String]) {
 
@@ -43,10 +46,19 @@ class RotateClientSecrets(keycloakClient: Keycloak,
           val client = clients.get(clientId)
           val newSecret = client.generateNewSecret().getValue
           logger.info(s"Secrets generated for $tdrClient")
-          val putParameterRequest = putParameterBuilder
-            .name(ssmParameterName)
-            .value(newSecret).build()
-          ssmClient.putParameter(putParameterRequest)
+
+          if (tdrClient == "ayr") {
+            val putSecretValueRequest = PutSecretValueRequest.builder()
+              .secretId(ssmParameterName)
+              .secretString(newSecret)
+              .build()
+            smClient.putSecretValue(putSecretValueRequest)
+          } else {
+            val putParameterRequest = putParameterBuilder
+              .name(ssmParameterName)
+              .value(newSecret).build()
+            ssmClient.putParameter(putParameterRequest)
+          }
           logger.info(s"Parameter name $ssmParameterName updated for $tdrClient")
           restartFrontEndService()
           Message(s"Client $tdrClient has been rotated successfully")
@@ -64,6 +76,10 @@ object RotateClientSecrets {
     .region(Region.EU_WEST_2)
     .build()
 
+  val smClient: SecretsManagerClient = SecretsManagerClient.builder()
+    .region(Region.EU_WEST_2)
+    .build()
+
   val ecsClient: EcsClient = EcsClient.builder()
     .region(Region.EU_WEST_2)
     .build()
@@ -76,6 +92,7 @@ object RotateClientSecrets {
     "tdr-rotate-secrets"-> s"/$environment/keycloak/rotate_secrets_client/secret",
     "tdr-user-admin"-> s"/$environment/keycloak/user_admin_client/secret",
     "tdr-rotate-secrets" -> s"/$environment/keycloak/rotate_secrets_client/secret",
+    "ayr" -> s"$ayrClientSecretId"
   )
-  def apply(client: Keycloak) = new RotateClientSecrets(client, ssmClient, ecsClient, environment, clients)
+  def apply(client: Keycloak) = new RotateClientSecrets(client, ssmClient, ecsClient, smClient, environment, clients)
 }

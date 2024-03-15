@@ -13,6 +13,8 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import software.amazon.awssdk.services.ecs.EcsClient
 import software.amazon.awssdk.services.ecs.model.{UpdateServiceRequest, UpdateServiceResponse}
+import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient
+import software.amazon.awssdk.services.secretsmanager.model.{PutSecretValueRequest, PutSecretValueResponse}
 import software.amazon.awssdk.services.ssm.SsmClient
 import software.amazon.awssdk.services.ssm.model.{PutParameterRequest, PutParameterResponse}
 import uk.gov.nationalarchives.rotate.RotateClientSecrets.clients
@@ -63,8 +65,27 @@ class RotateClientSecretsSpec extends AnyFlatSpec with Matchers with MockitoSuga
     .authorization("token")
     .build()
 
+  "The rotate function" should "call the secrets manager service for ayr client" in {
+    val ssmClients: Map[String, String] = Map("ayr" -> "b")
+    stubAuthServer(List(AuthServerClients("ayr", stubClientSecretPost = true)))
 
-  "The rotate function" should "call the correct services" in {
+    val mockSecretsManager = Mockito.mock(classOf[SecretsManagerClient])
+    val putSecretValueResponse = PutSecretValueResponse.builder.build()
+    when(mockSecretsManager.putSecretValue(any[PutSecretValueRequest])).thenReturn(putSecretValueResponse)
+
+    val mockEcsClient = mock[EcsClient]
+    val updateServiceResponse = UpdateServiceResponse.builder().build()
+    when(mockEcsClient.updateService(any[UpdateServiceRequest]))
+      .thenReturn(updateServiceResponse)
+
+    val rotateClientSecrets = new RotateClientSecrets(client, mock[SsmClient], mockEcsClient, mockSecretsManager, stage, ssmClients)
+    val results = rotateClientSecrets.rotate()
+    results.size should be(1)
+    results.head.message should be("Client ayr has been rotated successfully")
+  }
+
+
+  "The rotate function" should "call the ssm service for all clients except ayr" in {
     val ssmClients: Map[String, String] = Map("a" -> "b")
     stubAuthServer(List(AuthServerClients("a", stubClientSecretPost = true)))
     val mockSsm = Mockito.mock(classOf[SsmClient])
@@ -76,7 +97,7 @@ class RotateClientSecretsSpec extends AnyFlatSpec with Matchers with MockitoSuga
     when(mockEcsClient.updateService(any[UpdateServiceRequest]))
       .thenReturn(updateServiceResponse)
 
-    val rotateClientSecrets = new RotateClientSecrets(client, mockSsm, mockEcsClient, stage, ssmClients)
+    val rotateClientSecrets = new RotateClientSecrets(client, mockSsm, mockEcsClient, mock[SecretsManagerClient], stage, ssmClients)
     val results = rotateClientSecrets.rotate()
     results.size should be(1)
     results.head.message should be("Client a has been rotated successfully")
@@ -84,24 +105,35 @@ class RotateClientSecretsSpec extends AnyFlatSpec with Matchers with MockitoSuga
 
   "The rotate function" should "use the correct secret path" in {
     val parameterPath = "/test/parameter/path"
-    val ssmClients: Map[String, String] = Map("a" -> parameterPath)
-    stubAuthServer(List(AuthServerClients("a", stubClientSecretPost = true)))
+    val secretId = "secretId"
+    val ssmClients: Map[String, String] = Map("a" -> parameterPath, "ayr" -> secretId)
+    stubAuthServer(List(
+      AuthServerClients("a", stubClientSecretPost = true),
+      AuthServerClients("ayr", stubClientSecretPost = true)
+    ))
 
     val mockSsm = Mockito.mock(classOf[SsmClient])
     val putParameterResponse = PutParameterResponse.builder.build()
     val putParameterArgumentCaptor: ArgumentCaptor[PutParameterRequest] = ArgumentCaptor.forClass(classOf[PutParameterRequest])
     when(mockSsm.putParameter(putParameterArgumentCaptor.capture())).thenReturn(putParameterResponse)
 
+    val mockSecretsManager = Mockito.mock(classOf[SecretsManagerClient])
+    val putSecretValueResponse = PutSecretValueResponse.builder.build()
+    val putSecretValueArgumentCaptor: ArgumentCaptor[PutSecretValueRequest] = ArgumentCaptor.forClass(classOf[PutSecretValueRequest])
+    when(mockSecretsManager.putSecretValue(putSecretValueArgumentCaptor.capture())).thenReturn(putSecretValueResponse)
+
     val mockEcsClient = mock[EcsClient]
     val updateServiceResponse = UpdateServiceResponse.builder().build()
     when(mockEcsClient.updateService(any[UpdateServiceRequest]))
       .thenReturn(updateServiceResponse)
 
-    val rotateClientSecrets = new RotateClientSecrets(client, mockSsm, mockEcsClient, stage, ssmClients)
+    val rotateClientSecrets = new RotateClientSecrets(client, mockSsm, mockEcsClient, mockSecretsManager, stage, ssmClients)
     val results = rotateClientSecrets.rotate()
-    results.size should be(1)
-    results.head.message should be("Client a has been rotated successfully")
+    results.size should be(2)
+    results.exists(_.message == "Client a has been rotated successfully") should be(true)
+    results.exists(_.message == "Client ayr has been rotated successfully") should be(true)
     putParameterArgumentCaptor.getValue.name() should equal(parameterPath)
+    putSecretValueArgumentCaptor.getValue.secretId() should equal(secretId)
   }
 
   "The rotate function" should "return an error and success response if only one update fails" in {
@@ -115,7 +147,11 @@ class RotateClientSecretsSpec extends AnyFlatSpec with Matchers with MockitoSuga
     val putParameterResponse = PutParameterResponse.builder.build()
     when(mockSsm.putParameter(any[PutParameterRequest])).thenReturn(putParameterResponse)
 
-    val rotateClientSecrets = new RotateClientSecrets(client, mockSsm, mock[EcsClient], stage, ssmClients)
+    val mockSecretsManager = Mockito.mock(classOf[SecretsManagerClient])
+    val putSecretValueResponse = PutSecretValueResponse.builder.build()
+    when(mockSecretsManager.putSecretValue(any[PutSecretValueRequest])).thenReturn(putSecretValueResponse)
+
+    val rotateClientSecrets = new RotateClientSecrets(client, mockSsm, mock[EcsClient], mockSecretsManager, stage, ssmClients)
     val results = rotateClientSecrets.rotate()
 
     results.size should be(2)
@@ -128,7 +164,11 @@ class RotateClientSecretsSpec extends AnyFlatSpec with Matchers with MockitoSuga
     val authServerClients = List(AuthServerClients("a", stubClientSecretPost = false))
     stubAuthServer(authServerClients)
 
-    val rotateClientSecrets = new RotateClientSecrets(client, Mockito.mock(classOf[SsmClient]), mock[EcsClient], stage, ssmClients)
+    val mockSecretsManager = Mockito.mock(classOf[SecretsManagerClient])
+    val putSecretValueResponse = PutSecretValueResponse.builder.build()
+    when(mockSecretsManager.putSecretValue(any[PutSecretValueRequest])).thenReturn(putSecretValueResponse)
+
+    val rotateClientSecrets = new RotateClientSecrets(client, Mockito.mock(classOf[SsmClient]), mock[EcsClient], mockSecretsManager, stage, ssmClients)
     val results = rotateClientSecrets.rotate()
 
     results.size should be(1)
@@ -143,7 +183,11 @@ class RotateClientSecretsSpec extends AnyFlatSpec with Matchers with MockitoSuga
     val errorMessage = "Error putting parameter"
     when(mockSsm.putParameter(any[PutParameterRequest])).thenThrow(new Exception(errorMessage))
 
-    val rotateClientSecrets = new RotateClientSecrets(client, mockSsm, mock[EcsClient], stage, ssmClients)
+    val mockSecretsManager = Mockito.mock(classOf[SecretsManagerClient])
+    val putSecretValueResponse = PutSecretValueResponse.builder.build()
+    when(mockSecretsManager.putSecretValue(any[PutSecretValueRequest])).thenReturn(putSecretValueResponse)
+
+    val rotateClientSecrets = new RotateClientSecrets(client, mockSsm, mock[EcsClient], mockSecretsManager, stage, ssmClients)
     val results = rotateClientSecrets.rotate()
 
     results.size should be(1)
@@ -157,12 +201,16 @@ class RotateClientSecretsSpec extends AnyFlatSpec with Matchers with MockitoSuga
     val putParameterResponse = PutParameterResponse.builder.build()
     when(mockSsm.putParameter(any[PutParameterRequest])).thenReturn(putParameterResponse)
 
+    val mockSecretsManager = Mockito.mock(classOf[SecretsManagerClient])
+    val putSecretValueResponse = PutSecretValueResponse.builder.build()
+    when(mockSecretsManager.putSecretValue(any[PutSecretValueRequest])).thenReturn(putSecretValueResponse)
+
     val mockEcsClient = mock[EcsClient]
     val errorMessage = "ECS Update Service Failed"
     when(mockEcsClient.updateService(any[UpdateServiceRequest]))
       .thenThrow(new Exception(errorMessage))
 
-    val rotateClientSecrets = new RotateClientSecrets(client, mockSsm, mockEcsClient, stage, ssmClients)
+    val rotateClientSecrets = new RotateClientSecrets(client, mockSsm, mockEcsClient, mockSecretsManager, stage, ssmClients)
     val results = rotateClientSecrets.rotate()
     results.size should be(1)
     results.exists(_.message == s"Client a has failed $errorMessage") should be(true)
@@ -177,5 +225,6 @@ class RotateClientSecretsSpec extends AnyFlatSpec with Matchers with MockitoSuga
     clients("tdr-rotate-secrets") should equal (s"/$environment/keycloak/rotate_secrets_client/secret")
     clients("tdr-user-admin") should be(s"/$environment/keycloak/user_admin_client/secret")
     clients("tdr-rotate-secrets") should be (s"/$environment/keycloak/rotate_secrets_client/secret")
+    clients("ayr") should equal(s"ayr-client-secret-arn")
   }
 }
