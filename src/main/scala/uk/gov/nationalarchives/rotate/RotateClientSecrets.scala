@@ -75,7 +75,7 @@ object RotateClientSecrets {
     "tdr-reporting"-> s"/$environment/keycloak/reporting_client/secret",
     "tdr-rotate-secrets"-> s"/$environment/keycloak/rotate_secrets_client/secret",
     "tdr-user-admin"-> s"/$environment/keycloak/user_admin_client/secret",
-    "tdr-rotate-secrets" -> s"/$environment/keycloak/rotate_secrets_client/secret",
+    "tdr-user-read"-> s"/$environment/keycloak/user_read/secret"
   )
   def apply(client: Keycloak) = new RotateClientSecrets(client, ssmClient, ecsClient, environment, clients)
 }
