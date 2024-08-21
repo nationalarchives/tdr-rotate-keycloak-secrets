@@ -64,7 +64,7 @@ object RotateClientSecrets {
     .region(Region.EU_WEST_2)
     .build()
 
-  val ecsClient: EcsClient = EcsClient.builder()
+  private val ecsClient: EcsClient = EcsClient.builder()
     .region(Region.EU_WEST_2)
     .build()
 
@@ -74,6 +74,7 @@ object RotateClientSecrets {
     "tdr-realm-admin"-> s"/$environment/keycloak/realm_admin_client/secret",
     "tdr-reporting"-> s"/$environment/keycloak/reporting_client/secret",
     "tdr-rotate-secrets"-> s"/$environment/keycloak/rotate_secrets_client/secret",
+    "tdr-transfer-service"-> s"/$environment/keycloak/transfer_service_client/secret",
     "tdr-user-admin"-> s"/$environment/keycloak/user_admin_client/secret",
     "tdr-user-read"-> s"/$environment/keycloak/user_read_client/secret"
   )

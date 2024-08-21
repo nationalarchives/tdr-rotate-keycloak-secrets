@@ -175,7 +175,8 @@ class RotateClientSecretsSpec extends AnyFlatSpec with Matchers with MockitoSuga
     clients("tdr-realm-admin") should equal(s"/$environment/keycloak/realm_admin_client/secret")
     clients("tdr-reporting") should equal (s"/$environment/keycloak/reporting_client/secret")
     clients("tdr-rotate-secrets") should equal (s"/$environment/keycloak/rotate_secrets_client/secret")
+    clients("tdr-transfer-service") should be (s"/$environment/keycloak/transfer_service_client/secret")
     clients("tdr-user-admin") should be(s"/$environment/keycloak/user_admin_client/secret")
-    clients("tdr-rotate-secrets") should be (s"/$environment/keycloak/rotate_secrets_client/secret")
+    clients("tdr-user-read") should be (s"/$environment/keycloak/user_read_client/secret")
   }
 }
