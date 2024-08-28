@@ -61,7 +61,7 @@ class RotateClientSecrets(keycloakClient: Keycloak,
       restartFrontEndService()
     } match {
       case
-        Failure(exception) => logger.error(s"$exception")
+        Failure(exception) => logger.error("Error restarting ECS Frontend", exception)
         messages :+ Message(s"ECS Frontend task failed to restart: ${exception.getMessage}")
       case Success(_) => messages
     }
