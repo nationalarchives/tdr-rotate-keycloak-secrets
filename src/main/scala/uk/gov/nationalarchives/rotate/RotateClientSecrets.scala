@@ -35,7 +35,7 @@ class RotateClientSecrets(keycloakClient: Keycloak,
       .overwrite(true)
       .`type`(ParameterType.SECURE_STRING)
 
-    clients.map {
+   val messages = clients.map {
       case (tdrClient, ssmParameterName) =>
         Try {
           val clients = keycloakClient.realm("tdr").clients()
@@ -48,8 +48,7 @@ class RotateClientSecrets(keycloakClient: Keycloak,
             .value(newSecret).build()
           ssmClient.putParameter(putParameterRequest)
           logger.info(s"Parameter name $ssmParameterName updated for $tdrClient")
-          restartFrontEndService()
-          Message(s"Client $tdrClient has been rotated successfully")
+          Message(s"Client $tdrClient secret has been rotated successfully")
         } match {
           case Failure(exception) =>
             logger.error("Error updating client secret", exception)
@@ -57,6 +56,15 @@ class RotateClientSecrets(keycloakClient: Keycloak,
           case Success(result) => result
         }
     }.toList
+
+    Try {
+      restartFrontEndService()
+    } match {
+      case
+        Failure(exception) => logger.error("Error restarting ECS Frontend", exception)
+        messages :+ Message(s"ECS Frontend task failed to restart: ${exception.getMessage}")
+      case Success(_) => messages
+    }
   }
 }
 object RotateClientSecrets {
