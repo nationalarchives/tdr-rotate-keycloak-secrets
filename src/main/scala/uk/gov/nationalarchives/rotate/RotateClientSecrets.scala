@@ -21,10 +21,15 @@ class RotateClientSecrets(keycloakClient: Keycloak,
 
   val logger: Logger = new SimpleLoggerFactory().getLogger(this.getClass.getName)
 
-  private def restartFrontEndService(): UpdateServiceResponse = {
+  private val ecsServices: Set[(String, String)] = Set(
+    s"frontend_service_$stage" -> s"frontend_$stage",
+    s"transferservice_$stage" -> s"transferservice_service_$stage"
+  )
+
+  private def restartEcsService(serviceName: String, clusterName: String): UpdateServiceResponse = {
     val updateServiceRequest = UpdateServiceRequest.builder
-      .service(s"frontend_service_$stage")
-      .cluster(s"frontend_$stage")
+      .service(serviceName)
+      .cluster(clusterName)
       .forceNewDeployment(true)
       .build()
     ecsClient.updateService(updateServiceRequest)
@@ -58,11 +63,11 @@ class RotateClientSecrets(keycloakClient: Keycloak,
     }.toList
 
     Try {
-      restartFrontEndService()
+      ecsServices.foreach(s => restartEcsService(s._1, s._2))
     } match {
       case
-        Failure(exception) => logger.error("Error restarting ECS Frontend", exception)
-        messages :+ Message(s"ECS Frontend task failed to restart: ${exception.getMessage}")
+        Failure(exception) => logger.error("Error restarting ECS", exception)
+        messages :+ Message(s"ECS task failed to restart: ${exception.getMessage}")
       case Success(_) => messages
     }
   }

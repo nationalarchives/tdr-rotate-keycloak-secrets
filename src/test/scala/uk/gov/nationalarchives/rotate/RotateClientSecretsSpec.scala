@@ -81,7 +81,7 @@ class RotateClientSecretsSpec extends AnyFlatSpec with Matchers with MockitoSuga
     val results = rotateClientSecrets.rotate()
     results.size should be(1)
     results.head.message should be("Client a secret has been rotated successfully")
-    verify(mockEcsClient, times(1)).updateService(any[UpdateServiceRequest])
+    verify(mockEcsClient, times(2)).updateService(any[UpdateServiceRequest])
   }
 
   "The rotate function" should "use the correct secret path" in {
@@ -104,7 +104,7 @@ class RotateClientSecretsSpec extends AnyFlatSpec with Matchers with MockitoSuga
     results.size should be(1)
     results.head.message should be("Client a secret has been rotated successfully")
     putParameterArgumentCaptor.getValue.name() should equal(parameterPath)
-    verify(mockEcsClient, times(1)).updateService(any[UpdateServiceRequest])
+    verify(mockEcsClient, times(2)).updateService(any[UpdateServiceRequest])
   }
 
   "The rotate function" should "return an error and success response if only one update fails" in {
@@ -125,7 +125,7 @@ class RotateClientSecretsSpec extends AnyFlatSpec with Matchers with MockitoSuga
     results.size should be(2)
     results.exists(_.message == "Client a secret has been rotated successfully") should be(true)
     results.exists(_.message == "Client b has failed HTTP 404 Not Found") should be(true)
-    verify(mockEcsClient, times(1)).updateService(any[UpdateServiceRequest])
+    verify(mockEcsClient, times(2)).updateService(any[UpdateServiceRequest])
   }
 
   "The rotate function" should "return an error if the Keycloak secret update fails" in {
@@ -140,7 +140,7 @@ class RotateClientSecretsSpec extends AnyFlatSpec with Matchers with MockitoSuga
     results.size should be(1)
 
     results.exists(_.message == "Client a has failed HTTP 404 Not Found") should be(true)
-    verify(mockEcsClient, times(1)).updateService(any[UpdateServiceRequest])
+    verify(mockEcsClient, times(2)).updateService(any[UpdateServiceRequest])
   }
 
   "The rotate function" should "return an error if the systems manager update fails" in {
@@ -156,7 +156,7 @@ class RotateClientSecretsSpec extends AnyFlatSpec with Matchers with MockitoSuga
 
     results.size should be(1)
     results.exists(_.message == s"Client a has failed $errorMessage") should be(true)
-    verify(mockEcsClient, times(1)).updateService(any[UpdateServiceRequest])
+    verify(mockEcsClient, times(2)).updateService(any[UpdateServiceRequest])
   }
 
   "The rotate function" should "return an error if the ECS service update fails" in {
@@ -175,7 +175,7 @@ class RotateClientSecretsSpec extends AnyFlatSpec with Matchers with MockitoSuga
     val results = rotateClientSecrets.rotate()
     results.size should be(2)
     results.contains(Message(s"Client a secret has been rotated successfully")) should be(true)
-    results.contains(Message(s"ECS Frontend task failed to restart: $errorMessage")) should be(true)
+    results.contains(Message(s"ECS task failed to restart: $errorMessage")) should be(true)
   }
 
   "The clients" should "be correct" in {
