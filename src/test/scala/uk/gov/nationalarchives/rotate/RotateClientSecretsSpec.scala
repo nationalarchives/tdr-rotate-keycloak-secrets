@@ -225,7 +225,7 @@ class RotateClientSecretsSpec extends AnyFlatSpec with Matchers with MockitoSuga
     verify(mockEventBridgeClient, times(0)).updateConnection(any[UpdateConnectionRequest])
   }
 
-  "The rotate function" should "not update EventBridge connection when a connection client secret fails to rotate" in {
+  "The rotate function" should "not update EventBridge connection when its connection client secret fails to rotate" in {
     val ssmClients: Map[String, String] = Map("a" -> "b")
     val apiConnectionClients = Set(ApiConnectionClient("a", "aConnectionArn"))
     val mockEcsClient = mock[EcsClient]
