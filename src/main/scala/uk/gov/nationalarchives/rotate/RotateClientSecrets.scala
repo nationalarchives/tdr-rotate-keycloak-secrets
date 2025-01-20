@@ -100,13 +100,15 @@ class RotateClientSecrets(keycloakClient: Keycloak,
             Message(s"Client $tdrClient has failed ${exception.getMessage}") :: Nil
           case Success(result) =>
             val resultClient = result.tdrClient
-            if (apiConnectionClients.map(_.tdrClient).contains(resultClient)) {
-              val connectionClient = apiConnectionClients.filter(_.tdrClient == resultClient).head
-              List(
-                result.resultMessage,
-                updateEventBridgeConnectionSecret(connectionClient.connectionArn, resultClient, result.newSecretValue.get))
+            apiConnectionClients.find(_.tdrClient == resultClient) match {
+              case Some(connectionClient) =>
+                List(
+                  result.resultMessage,
+                  updateEventBridgeConnectionSecret(connectionClient.connectionArn, resultClient, result.newSecretValue.get)
+                )
+              case None =>
+                List(result.resultMessage)
             }
-            else result.resultMessage :: Nil
         }
     }.toList.flatten
 
