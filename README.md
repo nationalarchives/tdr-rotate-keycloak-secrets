@@ -42,4 +42,5 @@ AUTH_URL: https://auth.tdr-integration.nationalarchives.gov.uk
 AUTH_SECRET_PATH: /intg/keycloak/rotate_secrets_client/secret
 ENVIRONMENT: intg
 SNS_TOPIC: arn:aws:sns:eu-west-2:${intg_account_number}:tdr-notifications-intg
+CONSIGNMENT_API_CONNECTION_NAME: {name of the api connection for the environment}
 ```

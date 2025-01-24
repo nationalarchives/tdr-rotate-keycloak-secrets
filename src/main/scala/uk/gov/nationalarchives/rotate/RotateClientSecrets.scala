@@ -34,7 +34,7 @@ class RotateClientSecrets(keycloakClient: Keycloak,
     EcsService(s"transferservice_service_$stage", s"transferservice_$stage")
   )
 
-  private def updateEventBridgeConnectionSecret(connectionArn: String, tdrClientId: String, secretValue: String): Message = {
+  private def updateEventBridgeConnectionSecret(connectionName: String, tdrClientId: String, secretValue: String): Message = {
 
     val updateSecretRequest: UpdateConnectionOAuthClientRequestParameters = UpdateConnectionOAuthClientRequestParameters.builder()
       .clientID(tdrClientId)
@@ -50,13 +50,14 @@ class RotateClientSecrets(keycloakClient: Keycloak,
       .build()
 
     val updateConnectionRequest = UpdateConnectionRequest.builder()
-      .name(connectionArn)
+      .authorizationType("OAUTH_CLIENT_CREDENTIALS")
+      .name(connectionName)
       .authParameters(updateConnectionAuthRequest)
       .build()
 
     Try {
       eventBridgeClient.updateConnection(updateConnectionRequest)
-      logger.info(s"EventBridge connection $connectionArn secret updated")
+      logger.info(s"EventBridge connection $connectionName secret updated")
       Message(s"EventBridge connections secrets using $tdrClientId updated")
     } match {
       case Failure(exception) =>
@@ -104,7 +105,7 @@ class RotateClientSecrets(keycloakClient: Keycloak,
               case Some(connectionClient) =>
                 List(
                   result.resultMessage,
-                  updateEventBridgeConnectionSecret(connectionClient.connectionArn, resultClient, result.newSecretValue.get)
+                  updateEventBridgeConnectionSecret(connectionClient.connectionName, resultClient, result.newSecretValue.get)
                 )
               case None =>
                 List(result.resultMessage)
@@ -123,7 +124,7 @@ class RotateClientSecrets(keycloakClient: Keycloak,
   }
 }
 object RotateClientSecrets {
-  case class ApiConnectionClient(tdrClient: String, connectionArn: String)
+  case class ApiConnectionClient(tdrClient: String, connectionName: String)
 
   val ssmClient: SsmClient = SsmClient.builder()
     .region(Region.EU_WEST_2)
@@ -152,7 +153,7 @@ object RotateClientSecrets {
   )
 
   val apiConnectionClients: Set[ApiConnectionClient] = Set(
-    ApiConnectionClient(tdrBackendChecksClient, consignmentApiConnectionArn)
+    ApiConnectionClient(tdrBackendChecksClient, consignmentApiConnectionName)
   )
 
   case class ClientSecretRotationResult(tdrClient: String, resultMessage: Message, newSecretValue: Option[String])
