@@ -12,5 +12,6 @@ class ApplicationConfigSpec extends AnyFlatSpec with Matchers {
     ssmEndpoint should equal("http://localhost:8080")
     snsEndpoint should equal("test")
     snsTopic should equal("arn:aws:sns:region:account:name")
+    consignmentApiConnectionName should equal("connectionName")
   }
 }
