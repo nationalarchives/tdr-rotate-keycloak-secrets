@@ -148,7 +148,8 @@ object RotateClientSecrets {
     "tdr-rotate-secrets"-> s"/$environment/keycloak/rotate_secrets_client/secret",
     "tdr-transfer-service"-> s"/$environment/keycloak/transfer_service_client/secret",
     "tdr-user-admin"-> s"/$environment/keycloak/user_admin_client/secret",
-    "tdr-user-read"-> s"/$environment/keycloak/user_read_client/secret"
+    "tdr-user-read"-> s"/$environment/keycloak/user_read_client/secret",
+    "tdr-draft-metadata"-> s"/$environment/keycloak/draft_metadata_client/secret"
   )
 
   val apiConnectionClients: Set[ApiConnectionClient] = Set(

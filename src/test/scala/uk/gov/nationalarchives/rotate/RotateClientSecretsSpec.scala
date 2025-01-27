@@ -287,5 +287,6 @@ class RotateClientSecretsSpec extends AnyFlatSpec with Matchers with MockitoSuga
     clients("tdr-transfer-service") should be (s"/$environment/keycloak/transfer_service_client/secret")
     clients("tdr-user-admin") should be(s"/$environment/keycloak/user_admin_client/secret")
     clients("tdr-user-read") should be (s"/$environment/keycloak/user_read_client/secret")
+    clients("tdr-draft-metadata") should be (s"/$environment/keycloak/draft_metadata_client/secret")
   }
 }
