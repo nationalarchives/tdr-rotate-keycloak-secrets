@@ -289,4 +289,8 @@ class RotateClientSecretsSpec extends AnyFlatSpec with Matchers with MockitoSuga
     clients("tdr-user-read") should be (s"/$environment/keycloak/user_read_client/secret")
     clients("tdr-draft-metadata") should be (s"/$environment/keycloak/draft_metadata_client/secret")
   }
+
+  "The apiConnectionClients" should "be correct" in {
+    apiConnectionClients(ApiConnectionClient("tdr-draft-metadata", "connectionName")) shouldBe true
+  }
 }
