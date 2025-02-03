@@ -6,18 +6,24 @@ import org.slf4j.simple.SimpleLoggerFactory
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.ecs.EcsClient
 import software.amazon.awssdk.services.ecs.model.{UpdateServiceRequest, UpdateServiceResponse}
+import software.amazon.awssdk.services.eventbridge.EventBridgeClient
+import software.amazon.awssdk.services.eventbridge.model.{UpdateConnectionAuthRequestParameters, UpdateConnectionOAuthClientRequestParameters, UpdateConnectionOAuthRequestParameters, UpdateConnectionRequest}
 import software.amazon.awssdk.services.ssm.SsmClient
 import software.amazon.awssdk.services.ssm.model.{ParameterType, PutParameterRequest}
 import uk.gov.nationalarchives.rotate.ApplicationConfig._
 import uk.gov.nationalarchives.rotate.MessageSender.Message
+import uk.gov.nationalarchives.rotate.RotateClientSecrets.{ApiConnectionClient, ClientSecretRotationResult}
 
 import scala.util.{Failure, Success, Try}
 
 class RotateClientSecrets(keycloakClient: Keycloak,
                           ssmClient: SsmClient,
                           ecsClient: EcsClient,
+                          eventBridgeClient: EventBridgeClient,
                           stage: String,
-                          clients: Map[String, String]) {
+                          clients: Map[String, String],
+                          apiConnectionClients: Set[ApiConnectionClient]
+                         ) {
 
   val logger: Logger = new SimpleLoggerFactory().getLogger(this.getClass.getName)
 
@@ -27,6 +33,39 @@ class RotateClientSecrets(keycloakClient: Keycloak,
     EcsService(s"frontend_service_$stage", s"frontend_$stage"),
     EcsService(s"transferservice_service_$stage", s"transferservice_$stage")
   )
+
+  private def updateEventBridgeConnectionSecret(connectionName: String, tdrClientId: String, secretValue: String): Message = {
+
+    val updateSecretRequest: UpdateConnectionOAuthClientRequestParameters = UpdateConnectionOAuthClientRequestParameters.builder()
+      .clientID(tdrClientId)
+      .clientSecret(secretValue)
+      .build()
+
+    val updateOAuthRequest: UpdateConnectionOAuthRequestParameters = UpdateConnectionOAuthRequestParameters.builder()
+      .clientParameters(updateSecretRequest)
+      .build()
+
+    val updateConnectionAuthRequest = UpdateConnectionAuthRequestParameters.builder()
+      .oAuthParameters(updateOAuthRequest)
+      .build()
+
+    val updateConnectionRequest = UpdateConnectionRequest.builder()
+      .authorizationType("OAUTH_CLIENT_CREDENTIALS")
+      .name(connectionName)
+      .authParameters(updateConnectionAuthRequest)
+      .build()
+
+    Try {
+      eventBridgeClient.updateConnection(updateConnectionRequest)
+      logger.info(s"EventBridge connection $connectionName secret updated")
+      Message(s"EventBridge connections secrets using $tdrClientId updated")
+    } match {
+      case Failure(exception) =>
+        logger.error("Error updating client secret", exception)
+        Message(s"EventBridge connections secrets updating has failed: ${exception.getMessage}")
+      case Success(result) => result
+    }
+  }
 
   private def restartEcsService(ecsService: EcsService): UpdateServiceResponse = {
     val updateServiceRequest = UpdateServiceRequest.builder
@@ -42,7 +81,7 @@ class RotateClientSecrets(keycloakClient: Keycloak,
       .overwrite(true)
       .`type`(ParameterType.SECURE_STRING)
 
-   val messages = clients.map {
+    val messages: List[Message] = clients.map {
       case (tdrClient, ssmParameterName) =>
         Try {
           val clients = keycloakClient.realm("tdr").clients()
@@ -55,14 +94,24 @@ class RotateClientSecrets(keycloakClient: Keycloak,
             .value(newSecret).build()
           ssmClient.putParameter(putParameterRequest)
           logger.info(s"Parameter name $ssmParameterName updated for $tdrClient")
-          Message(s"Client $tdrClient secret has been rotated successfully")
+          ClientSecretRotationResult(tdrClient, Message(s"Client $tdrClient secret has been rotated successfully"), Some(newSecret))
         } match {
           case Failure(exception) =>
             logger.error("Error updating client secret", exception)
-            Message(s"Client $tdrClient has failed ${exception.getMessage}")
-          case Success(result) => result
+            Message(s"Client $tdrClient has failed ${exception.getMessage}") :: Nil
+          case Success(result) =>
+            val resultClient = result.tdrClient
+            apiConnectionClients.find(_.tdrClient == resultClient) match {
+              case Some(connectionClient) =>
+                List(
+                  result.resultMessage,
+                  updateEventBridgeConnectionSecret(connectionClient.connectionName, resultClient, result.newSecretValue.get)
+                )
+              case None =>
+                List(result.resultMessage)
+            }
         }
-    }.toList
+    }.toList.flatten
 
     Try {
       ecsServices.foreach(restartEcsService)
@@ -75,6 +124,8 @@ class RotateClientSecrets(keycloakClient: Keycloak,
   }
 }
 object RotateClientSecrets {
+  case class ApiConnectionClient(tdrClient: String, connectionName: String)
+
   val ssmClient: SsmClient = SsmClient.builder()
     .region(Region.EU_WEST_2)
     .build()
@@ -82,6 +133,12 @@ object RotateClientSecrets {
   private val ecsClient: EcsClient = EcsClient.builder()
     .region(Region.EU_WEST_2)
     .build()
+
+  private def eventBridgeClient = EventBridgeClient.builder()
+    .region(Region.EU_WEST_2)
+    .build()
+
+  private val tdrDraftMetadataClient = "tdr-draft-metadata"
 
   val clients: Map[String, String] = Map(
     "tdr"-> s"/$environment/keycloak/client/secret",
@@ -91,7 +148,16 @@ object RotateClientSecrets {
     "tdr-rotate-secrets"-> s"/$environment/keycloak/rotate_secrets_client/secret",
     "tdr-transfer-service"-> s"/$environment/keycloak/transfer_service_client/secret",
     "tdr-user-admin"-> s"/$environment/keycloak/user_admin_client/secret",
-    "tdr-user-read"-> s"/$environment/keycloak/user_read_client/secret"
+    "tdr-user-read"-> s"/$environment/keycloak/user_read_client/secret",
+    "tdr-draft-metadata"-> s"/$environment/keycloak/draft_metadata_client/secret"
   )
-  def apply(client: Keycloak) = new RotateClientSecrets(client, ssmClient, ecsClient, environment, clients)
+
+  val apiConnectionClients: Set[ApiConnectionClient] = Set(
+    ApiConnectionClient(tdrDraftMetadataClient, consignmentApiConnectionName)
+  )
+
+  case class ClientSecretRotationResult(tdrClient: String, resultMessage: Message, newSecretValue: Option[String])
+
+  def apply(client: Keycloak) = new RotateClientSecrets(
+    client, ssmClient, ecsClient, eventBridgeClient, environment, clients, apiConnectionClients)
 }
