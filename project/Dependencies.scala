@@ -1,7 +1,7 @@
 import sbt._
 
 object Dependencies {
-  private val circeVersion = "0.14.14"
+  private val circeVersion = "0.14.15"
   private val awsSdkVersion = "2.34.5"
 
   lazy val awsSns = "software.amazon.awssdk" % "sns" % awsSdkVersion
