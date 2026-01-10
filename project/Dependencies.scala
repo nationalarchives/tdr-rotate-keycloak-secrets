@@ -2,7 +2,7 @@ import sbt._
 
 object Dependencies {
   private val circeVersion = "0.14.15"
-  private val awsSdkVersion = "2.41.3"
+  private val awsSdkVersion = "2.41.5"
 
   lazy val awsSns = "software.amazon.awssdk" % "sns" % awsSdkVersion
   lazy val awsSsm = "software.amazon.awssdk" % "ssm" % awsSdkVersion
@@ -11,7 +11,7 @@ object Dependencies {
   lazy val circeCore = "io.circe" %% "circe-core" % circeVersion
   lazy val circeGeneric = "io.circe" %% "circe-generic" % circeVersion
   lazy val circeParser = "io.circe" %% "circe-parser" % circeVersion
-  lazy val keycloakAdminClient = "org.keycloak" % "keycloak-admin-client" % "26.0.7"
+  lazy val keycloakAdminClient = "org.keycloak" % "keycloak-admin-client" % "26.0.8"
   lazy val lambdaCore = "com.amazonaws" % "aws-lambda-java-core" % "1.4.0"
   lazy val mockito = "org.mockito" %% "mockito-scala" % "2.0.0"
   lazy val scalaTest = "org.scalatest" %% "scalatest" % "3.2.19"
