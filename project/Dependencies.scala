@@ -16,6 +16,6 @@ object Dependencies {
   lazy val mockito = "org.mockito" %% "mockito-scala" % "2.0.0"
   lazy val scalaTest = "org.scalatest" %% "scalatest" % "3.2.19"
   lazy val slf4j = "org.slf4j" % "slf4j-simple" % "2.0.17"
-  lazy val typesafe = "com.typesafe" % "config" % "1.4.5"
+  lazy val typesafe = "com.typesafe" % "config" % "1.4.6"
   lazy val wiremock = "com.github.tomakehurst" % "wiremock" % "3.0.1"
 }
