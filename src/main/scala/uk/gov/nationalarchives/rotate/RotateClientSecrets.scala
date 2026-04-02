@@ -139,6 +139,7 @@ object RotateClientSecrets {
     .build()
 
   private val tdrDraftMetadataClient = "tdr-draft-metadata"
+  private val tdrExportClient = "tdr-export"
 
   val clients: Map[String, String] = Map(
     "tdr"-> s"/$environment/keycloak/client/secret",
@@ -149,11 +150,13 @@ object RotateClientSecrets {
     "tdr-transfer-service"-> s"/$environment/keycloak/transfer_service_client/secret",
     "tdr-user-admin"-> s"/$environment/keycloak/user_admin_client/secret",
     "tdr-user-read"-> s"/$environment/keycloak/user_read_client/secret",
-    "tdr-draft-metadata"-> s"/$environment/keycloak/draft_metadata_client/secret"
+    "tdr-draft-metadata"-> s"/$environment/keycloak/draft_metadata_client/secret",
+    "tdr-export"-> s"/$environment/keycloak/export_client/secret"
   )
 
   val apiConnectionClients: Set[ApiConnectionClient] = Set(
-    ApiConnectionClient(tdrDraftMetadataClient, consignmentApiConnectionName)
+    ApiConnectionClient(tdrDraftMetadataClient, consignmentApiConnectionName),
+    ApiConnectionClient(tdrExportClient, consignmentApiConnectionName)
   )
 
   case class ClientSecretRotationResult(tdrClient: String, resultMessage: Message, newSecretValue: Option[String])
