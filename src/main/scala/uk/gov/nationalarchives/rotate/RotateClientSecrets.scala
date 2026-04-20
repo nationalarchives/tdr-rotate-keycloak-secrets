@@ -156,7 +156,7 @@ object RotateClientSecrets {
 
   val apiConnectionClients: Set[ApiConnectionClient] = Set(
     ApiConnectionClient(tdrDraftMetadataClient, consignmentApiConnectionName),
-    ApiConnectionClient(tdrExportClient, consignmentApiConnectionName)
+    ApiConnectionClient(tdrExportClient, consignmentApiExportConnectionName)
   )
 
   case class ClientSecretRotationResult(tdrClient: String, resultMessage: Message, newSecretValue: Option[String])
