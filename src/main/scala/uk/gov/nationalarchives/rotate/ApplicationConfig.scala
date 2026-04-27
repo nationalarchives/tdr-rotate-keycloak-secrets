@@ -13,4 +13,5 @@ object ApplicationConfig {
   val snsEndpoint: String = config.getString("sns.endpoint")
   val snsTopic: String = config.getString("sns.topic")
   val consignmentApiConnectionName: String = config.getString("eventBridge.consignmentApiConnectionName")
+  val consignmentApiExportConnectionName: String = config.getString("eventBridge.consignmentAPIExportConnection")
 }
