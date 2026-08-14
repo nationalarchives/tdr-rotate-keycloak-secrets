@@ -14,6 +14,7 @@ jobs:
       lambda-name: rotate-keycloak-secrets
       repo-name: tdr-rotate-keycloak-secrets
       artifact-name: rotate-keycloak-secrets
+      java-version: '17'
       build-command: |
         sbt assembly
     secrets:
