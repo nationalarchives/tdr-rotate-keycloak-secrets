@@ -24,7 +24,7 @@ jobs:
     permissions:
       id-token: write
       contents: write
-    uses: nationalarchives/tdr-github-actions/.github/workflows/lambda_deploy.yml@5a96b84cf82bce1371168cc31cb89f88cad86763 # v.0.0.53
+    uses: nationalarchives/tdr-github-actions/.github/workflows/lambda_deploy.yml@cd62f21505397a0dc62bda0384f0101f7ccaca2a # v.0.0.54
     with:
       lambda-name: rotate-keycloak-secrets
       deployment-package: rotate-keycloak-secrets.jar
