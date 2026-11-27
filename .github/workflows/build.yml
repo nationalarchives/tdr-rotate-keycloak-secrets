@@ -41,7 +41,6 @@ jobs:
     secrets:
       MANAGEMENT_ACCOUNT: ${{ secrets.MANAGEMENT_ACCOUNT }}
       WORKFLOW_PAT: ${{ secrets.WORKFLOW_PAT }}
-      JAVA_RUNTIME: ${{ vars.JAVA_RUNTIME }}
   deploy:
     needs: pre-deploy
     runs-on: ubuntu-latest
